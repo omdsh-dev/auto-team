@@ -1,103 +1,104 @@
-# DeepSeek Harness Plugin Template
+# DSH Auto Team
 
 English | [中文](README.zh.md)
 
-A self-contained standalone repository template for an ESM Cordis plugin targeting DeepSeek Harness 0.2.1-rc.2. Every source file, compiler setting, test fixture, contributor instruction, skill, and build helper used by the repository lives below this root. A DSH host is a runtime consumer of the finished package, not a development input.
+`dsh-auto-team` is a host-only DeepSeek Harness plugin (Cordis id `auto-team`). It gives long tasks a scored start and a team-shaped run, and it keeps the numeric score out of the model's context.
 
-## Documentation map
+The plugin adds the first-round decision, the goal bridge, and the Lead and worker policy gates. The teammate, task-board, and worktree tools come from the host profile. It targets DSH 0.2.1-rc.2.
 
-| Need | Read |
-| --- | --- |
-| Contract rules: plugin forms, manifest, dependencies, display, lifecycle, composition, client, distribution | [docs/dsh-plugin-contracts.md](docs/dsh-plugin-contracts.md) |
-| End-to-end workflow and stage routing | [.agents/skills/dsh-plugin-development/SKILL.md](.agents/skills/dsh-plugin-development/SKILL.md) |
-| Source, test, and patch layout | [src/LAYOUT.md](src/LAYOUT.md), [tests/LAYOUT.md](tests/LAYOUT.md), [patches/LAYOUT.md](patches/LAYOUT.md) |
-| Commands, CI, and release flow | this README and [.github/workflows](.github/workflows) |
+## How a task runs
 
-## Repository layout
+The Lead calls `auto_team_score` once in the first round. The call takes five factors from 1 to 5, covering scope, parallelism, ambiguity, risk, and expected_steps, plus the task goal in its ordinary meaning.
 
-```text
-.
-├── .agents/skills/               # Repository-local plugin development workflow
-│   ├── dsh-plugin-development/   # End-to-end coordinator
-│   └── dsh-plugin-*/             # Stage skills
-├── docs/
-│   └── dsh-plugin-contracts.md   # Authoritative package and integration contract
-├── patches/
-│   └── LAYOUT.md                 # Dependency and DSH-host patch contract
-├── scripts/
-│   ├── extract-patch.mjs         # Host patch regeneration
-│   └── patch.sh                  # Idempotent host patch application
-├── src/
-│   ├── assets/
-│   │   ├── icon.svg              # Plugin icon exported through `./icon`
-│   │   └── locale/
-│   │       ├── en.json           # Display metadata
-│   │       └── zh.json
-│   ├── LAYOUT.md                 # Growth rules for source modules
-│   ├── config.ts                 # Schemastery schema and defaults
-│   ├── index.ts                  # Loader-facing function-plugin namespace
-│   └── runtime.ts                # Host boundary and activation
-├── tests/
-│   ├── LAYOUT.md                 # Test conventions
-│   ├── harness.ts                # Shared real-Cordis mount
-│   ├── plugin.test.ts            # Loader and activation tests
-│   └── snapshots/
-│       └── LAYOUT.md             # Optional visible-output fixtures
-├── .oxlintrc.json                # Type-aware Oxlint configuration
-├── AGENTS.md                     # Contributor standing orders and navigation
-├── cordis.patch.yml              # Profile bundle contribution
-├── package.json                  # Exports, peers, engines, bundle metadata
-├── pnpm-lock.yaml                # Reproducible dependency graph
-├── pnpm-workspace.yaml           # Package-manager policy
-├── tsconfig.json                 # Compiler and type-aware lint project
-├── tsdown.config.ts              # Source-to-runtime/declaration build
-└── vitest.config.ts              # Test runner configuration
+The plugin turns the factors into a weighted score from 0 to 1. The model gets only `team` or `solo`; the score and the effective threshold stay host-side. The default threshold is 0.55. If a user-created goal already exists at the first score, the threshold is multiplied by 0.6.
+
+The first round must be scored. If the turn tries to close before the tool ran, an `agent/turn-stopping` listener steers the Lead back with a reminder.
+
+The score is frozen for the task. It is written to the session log as a `plugin:auto-team/score` record and folded into the host-only `autoTeam` projection, so resuming a session keeps the decision and does not score again.
+
+On a team decision the plugin:
+
+- reuses the current goal, or starts one when none exists;
+- ensures a reporting teammate named `reporter`, which is configurable;
+- tells the Lead to keep the main Git repository and the team, and not to write code;
+- denies the Lead's `write` and `edit` calls by default;
+- requires each execution teammate to complete `create_worktree` before its own `write` or `edit` is allowed, and checks that an edit path stays inside the registered worktree when the host returns one. The reporter is exempt.
+
+Multi-round execution belongs to the goal runtime. The plugin starts or reuses the goal and does not run its own continuation loop.
+
+On a solo decision the task runs as a normal single-agent task.
+
+## Requirements
+
+The profile must compose these host services:
+
+- `agents`, `tools`, `systemPrompt`, `sessionProjections`
+- `agentTeams` from `@deepseek-ai/dsh-experimental-agent-team`
+- `goals` from `@deepseek-ai/dsh-goal`
+
+The plugin loads without them but logs a warning and installs nothing. When a service arrives later, an `internal/service` listener retries the install.
+
+## Install
+
+Build and pack the package:
+
+```sh
+pnpm install
+pnpm run lint
+pnpm test
+pnpm run build
+pnpm pack
 ```
 
-## Package contract
+Add the tarball to a profile that already composes the required services:
 
-[docs/dsh-plugin-contracts.md](docs/dsh-plugin-contracts.md) owns the full contract. The orientation points are:
+```sh
+dsh plugin --profile <profile> add ./your-scope-dsh-auto-team-0.0.1.tgz
+```
 
-- A function plugin exports `name`, `inject`, `Config`, and `apply` as one ESM namespace and has no default export.
-- `engines.node` is `>=24.0.0`; `engines.dsh` declares the supported DSH range; `dsh.manifestVersion` and `dsh.bundle.patch` describe the public bundle layer.
-- Display metadata reaches Plugin Manager through the exported `./locale/*.json` and `./icon` resources. This template stores their physical files under `src/assets/` and lists them in `files`.
-- `@deepseek-ai/cordis` and `@deepseek-ai/schemastery` are host-supplied peers, duplicated in `devDependencies` for local checks. See [dependencies](docs/dsh-plugin-contracts.md#dependencies).
-- A browser face declares `dsh.client` and exports its built bundle at `./client`.
+The package name in `package.json` still carries the template scope. Replace `@your-scope` before publishing.
 
-## Create your plugin
+## Configuration
 
-1. Replace package identity in `package.json`, the Loader owner, configuration/runtime owners, focused tests, bundle metadata, TypeScript metadata, both READMEs, `AGENTS.md`, and `src/assets/`.
-2. Choose the exact npm package name. It may be scoped or unscoped; do not assume the template's `@your-scope/dsh-` prefix. Replace it only in identity owners, never globally inside `.agents/skills/`.
-3. Set `engines.dsh` to the range you support. Keep `engines.node` at Node 24 LTS or newer unless a different host contract is deliberate.
-4. Update `keywords`, `LICENSE`, `cordis.patch.yml`, and the display title, description, and icon.
-5. Add only the DSH host services the implementation uses. Apply [dependencies](docs/dsh-plugin-contracts.md#dependencies) when placing each package.
-6. Implement activation and host-boundary behavior in the runtime/service owners, keeping registrations fiber-owned and disposing them in tests.
-7. Keep every source, compiler, documentation, and project-reference path inside this repository. Do not add `link:` or `file:` dependencies.
-8. Set `private` to `false` only when the package's public dependencies and distribution artifacts are ready.
+Every field is optional. Schemastery checks the values at load; invalid values fail activation.
 
-Do not add a default export to a function plugin. Cordis Loader unwraps `exports.default ?? exports`; a stray default export discards `inject`, `Config`, and `apply`.
+| Field | Default | Meaning |
+| --- | --- | --- |
+| `message` | `auto-team loaded` | Activation log line. |
+| `threshold` | `0.55` | Base score needed for Team mode. |
+| `manualGoalFactor` | `0.6` | Multiplier applied to the threshold when a user-created goal exists. |
+| `weights` | scope 0.3, parallelism 0.25, ambiguity 0.15, risk 0.15, expectedSteps 0.15 | Relative weight of each difficulty factor. |
+| `reportingAgentName` | `reporter` | Name of the reporting teammate. |
+| `reportingProvider` | `spawn` | Subagent provider used for the reporter. |
+| `goalMaxRounds` | `256` | Round cap used when the plugin starts a goal. |
+| `enforceLeadNoCode` | `true` | Install the Lead write/edit gate. |
+| `leadDeniedTools` | `['write', 'edit']` | Tool names denied to a Team-mode Lead. |
 
-## Bundled development skills
+## Tool
 
-Start with [`dsh-plugin-development`](.agents/skills/dsh-plugin-development/SKILL.md) for the complete sequence, or invoke one stage directly:
+The package adds one model-facing tool.
 
-| Skill | Purpose |
-| --- | --- |
-| [plan](.agents/skills/dsh-plugin-plan/SKILL.md) | Decide form, dependencies, configuration, compatibility, display, composition, evidence, and distribution. |
-| [scaffold](.agents/skills/dsh-plugin-scaffold/SKILL.md) | Instantiate and baseline-verify a new repository from this template. |
-| [align](.agents/skills/dsh-plugin-align/SKILL.md) | Migrate an existing repository to this toolchain without changing behavior. |
-| [implement](.agents/skills/dsh-plugin-implement/SKILL.md) | Implement lifecycle-safe behavior, configuration, metadata, docs, and tests. |
-| [client](.agents/skills/dsh-plugin-client/SKILL.md) | Add a `dsh.client` browser face, slots, settings forms, and ModuleLoader checks. |
-| [i18n](.agents/skills/dsh-plugin-i18n/SKILL.md) | Localize browser UI with typed dictionaries and disposal evidence. |
-| [compose](.agents/skills/dsh-plugin-compose/SKILL.md) | Install the bundle into a profile and prove activation and compatibility. |
-| [test](.agents/skills/dsh-plugin-test/SKILL.md) | Select the smallest evidence for Loader, behavior, disposal, composition, and artifacts. |
-| [release](.agents/skills/dsh-plugin-release/SKILL.md) | Check packed, Git, or npm release readiness without publishing. |
+`auto_team_score` takes:
 
-Keep these directories when copying the template.
+| Parameter | Type | Meaning |
+| --- | --- | --- |
+| `scope` | integer 1 to 5 | Expected change scope. |
+| `parallelism` | integer 1 to 5 | How much independent work can run at once. |
+| `ambiguity` | integer 1 to 5 | How much requirement or design uncertainty remains. |
+| `risk` | integer 1 to 5 | How costly a wrong change would be. |
+| `expected_steps` | integer 1 to 5 | Expected task length. |
+| `objective` | string | The task goal in its ordinary meaning. Used only when the plugin starts a goal. |
 
-## Independent development
+It returns `{ decision, goal, reporter? }`. The numeric score and threshold are not in the result. The host's Agent Teams tools handle spawning, messaging, and the shared task board. The host goal lifecycle handles completion and continuation.
 
-Run from this repository root:
+## Guards and limits
+
+- The Lead gate is a tool-name policy, not a sandbox. `pwsh`, `run_code`, and direct filesystem effects can bypass it. The policy tells the Lead not to use them as a workaround.
+- The worker gate checks that a `create_worktree` call succeeded and, when the host returns the worktree path, that each `write` or `edit` uses an absolute `file_path` inside it. If the host result has no path, the gate falls back to checking only that the call succeeded.
+- The reporter is spawned with the configured provider. If the spawn fails, the score stays frozen and a later call retries the reporter.
+- A real DSH profile composition test has not been run in this repository. `tests/runtime.test.ts` mounts a real Cordis context and a real detached Session with fake host services, and covers the install path, the scoring tool, the stop guard, the Lead gate, and the worker gate.
+
+## Development
 
 ```sh
 pnpm install
@@ -107,53 +108,10 @@ pnpm run build
 pnpm pack --dry-run --json
 ```
 
-`lint` is the type-aware static-analysis gate. `test` uses the Vitest `forks` pool; a restricted host that rejects child-process forks can run `vitest run --pool=threads` locally. `build` emits the ready-to-pack `lib/` runtime and declarations without an install-time build.
+The tests cover the scoring policy, configuration, goal and reporter orchestration, the durable score projection, the runtime install path, and the Loader export shape.
 
-## CI
+Read [the design note](docs/auto-team-design.md) for the behavior and the flow chart, and [the plugin contracts](docs/dsh-plugin-contracts.md) for the package rules.
 
-- [ci.yml](.github/workflows/ci.yml): frozen install, lint, tests, and build on pushes to `main` and pull requests.
-- [release.yml](.github/workflows/release.yml): the same checks, then packs the tarball and publishes it to the version's GitHub Release.
+## Status
 
-## Profile activation
-
-Install through the plugin channel:
-
-```sh
-dsh plugin --profile <profile> add <package-or-tarball>
-```
-
-Profile startup checks `engines.dsh`, applies `dsh.bundle.patch` in bundle order, and reads display metadata without activating the plugin. See [manifest and compatibility](docs/dsh-plugin-contracts.md#manifest-and-compatibility) and [bundle composition](docs/dsh-plugin-contracts.md#bundle-composition).
-
-## Plugin forms
-
-```ts
-export const name = 'plugin-template'
-export const inject: string[] = []
-export { Config } from './config.ts'
-export { apply } from './runtime.ts'
-
-// src/config.ts
-import Schema from '@deepseek-ai/schemastery'
-export interface PluginConfig { /* serializable fields */ }
-export const Config: Schema<PluginConfig> = Schema.object({ /* validation and defaults */ })
-
-// src/runtime.ts
-export function apply(ctx: Context, config: PluginConfig): void { /* effects */ }
-```
-
-`Config` is the schema value Cordis Loader validates; `PluginConfig` is the public TypeScript shape. Keeping the names distinct avoids the declaration-merge false positive in `no-redeclare`. A service provider instead default-exports its `Service` subclass; do not mix the two forms.
-
-## Distribution
-
-Build before packing and inspect the archive:
-
-```sh
-pnpm run build
-pnpm pack --dry-run --json
-```
-
-The archive must contain every file promised by `main`, `types`, `exports`, and `files`, plus the bundle patch and the physical display assets. See [build and distribution](docs/dsh-plugin-contracts.md#build-and-distribution). Git installs fetch sources; only add a self-contained `prepare` build when you deliberately distribute that way and document the consumer's build-script approval.
-
-## Testing
-
-The baseline tests prove Loader-safe ESM exports and schema-resolved activation. Replace the activation assertions with observable behavior and disposal assertions for every registry contribution. Product-visible plugins also need a real Loader/profile composition test in the consuming DSH application; see [tests/LAYOUT.md](tests/LAYOUT.md) and [evidence](docs/dsh-plugin-contracts.md#evidence).
+The core flow works and is covered by the repository tests. The release checks (lint, tests, build, pack) pass. A real DSH profile composition test is not available in this repository; `tests/runtime.test.ts` covers the install path with real Cordis and a real detached Session plus fake host services. The changes are not committed.

@@ -38,6 +38,7 @@
   ],
   "rules": {
     "no-inline-comments": "off", // Pedantic
+    "no-magic-numbers": "off", // auto-team's 1..5 factor scale and 0..1 thresholds are domain values
     "typescript/prefer-readonly-parameter-types": "off", // Pedantic
 
     "vitest/require-test-timeout": "off", // Restriction
@@ -87,5 +88,30 @@
       "error",
       60
     ], // Style
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/runtime.ts"],
+      "rules": {
+        "import/max-dependencies": "off"
+      }
+    },
+    {
+      "files": ["tests/**/*.ts"],
+      "rules": {
+        "eslint/max-lines": "off",
+        "eslint/require-await": "off",
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-type-assertion": "off",
+        "typescript/require-await": "off",
+        "typescript/promise-function-async": "off",
+        "unicorn/no-useless-promise-resolve-reject": "off",
+        "unicorn/no-useless-undefined": "off",
+        "vitest/max-expects": "off",
+        "vitest/prefer-called-once": "off",
+        "vitest/prefer-expect-assertions": "off",
+        "vitest/prefer-strict-boolean-matchers": "off"
+      }
+    }
+  ]
 }

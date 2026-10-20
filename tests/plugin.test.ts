@@ -34,7 +34,7 @@ function assertPluginExports(unwrapped: unknown, plugin: object): void {
     throw new TypeError('Loader did not return plugin exports')
   }
   expect(unwrapped).toBe(plugin)
-  expect(unwrapped.name).toBe('plugin-template')
+  expect(unwrapped.name).toBe('auto-team')
   expect(unwrapped.inject).toStrictEqual([])
   expect(unwrapped.Config).toBeDefined()
   expect(unwrapped.apply).toBeTypeOf('function')
@@ -53,7 +53,7 @@ async function testPreservesPluginNamespace(): Promise<void> {
 async function testAppliesWithSchemaDefaults(): Promise<void> {
   expect.hasAssertions()
   const harness = await createPluginHarness()
-  expect(harness.info).toHaveBeenCalledWith('DSH plugin template loaded')
+  expect(harness.info).toHaveBeenCalledWith('auto-team loaded')
   await harness.dispose()
 }
 
@@ -71,7 +71,7 @@ async function testLogsOncePerActivation(): Promise<void> {
   await harness.dispose()
 }
 
-describe('@your-scope/dsh-plugin-template', () => {
+describe('@your-scope/dsh-auto-team', () => {
   it(
     'preserves the function-plugin namespace through Loader unwrapping',
     { timeout: TEST_TIMEOUT },

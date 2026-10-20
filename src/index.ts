@@ -1,11 +1,11 @@
 /**
  * Standalone function plugin for DeepSeek Harness.
  *
- * @module @your-scope/dsh-plugin-template
+ * @module @your-scope/dsh-auto-team
  */
 
 /** Cordis plugin name; keep this stable after publishing. */
-const name = 'plugin-template'
+const name = 'auto-team'
 
 /** Services that must exist before the plugin is applied. */
 const inject: string[] = []
