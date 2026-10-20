@@ -1,7 +1,7 @@
 /**
  * Model-facing policy and teammate prompts for auto-team.
  *
- * @module @your-scope/dsh-auto-team/prompt
+ * @module @oh-my-dsh/auto-team/prompt
  */
 
 /** First-round steering text used when the scoring tool has not run yet. */

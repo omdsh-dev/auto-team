@@ -4,7 +4,7 @@
  * The score is appended as an ignorable plugin record. The projection keeps the
  * first record and never exposes the numeric score to the model or client.
  *
- * @module @your-scope/dsh-auto-team/projection
+ * @module @oh-my-dsh/auto-team/projection
  */
 
 import type { SessionEvent } from '@deepseek-ai/dsh-session'

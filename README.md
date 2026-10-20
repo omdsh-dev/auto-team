@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-`dsh-auto-team` is a host-only DeepSeek Harness plugin (Cordis id `auto-team`). It gives long tasks a scored start and a team-shaped run, and it keeps the numeric score out of the model's context.
+`@oh-my-dsh/auto-team` is a host-only DeepSeek Harness plugin (Cordis id `auto-team`). It gives long tasks a scored start and a team-shaped run, and it keeps the numeric score out of the model's context.
 
 The plugin adds the first-round decision, the goal bridge, and the Lead and worker policy gates. The teammate, task-board, and worktree tools come from the host profile. It targets DSH 0.2.1-rc.2.
 
@@ -50,13 +50,19 @@ pnpm run build
 pnpm pack
 ```
 
-Add the tarball to a profile that already composes the required services:
+Install from npm once the package is published:
 
 ```sh
-dsh plugin --profile <profile> add ./your-scope-dsh-auto-team-0.0.1.tgz
+dsh plugin --profile <profile> add @oh-my-dsh/auto-team
 ```
 
-The package name in `package.json` still carries the template scope. Replace `@your-scope` before publishing.
+Or install a locally packed tarball:
+
+```sh
+dsh plugin --profile <profile> add ./oh-my-dsh-auto-team-0.1.0.tgz
+```
+
+The package name is `@oh-my-dsh/auto-team`, published under the `@oh-my-dsh` scope.
 
 ## Configuration
 
@@ -114,4 +120,4 @@ Read [the design note](docs/auto-team-design.md) for the behavior and the flow c
 
 ## Status
 
-The core flow works and is covered by the repository tests. The release checks (lint, tests, build, pack) pass. A real DSH profile composition test is not available in this repository; `tests/runtime.test.ts` covers the install path with real Cordis and a real detached Session plus fake host services. The changes are not committed.
+The core flow works and is covered by the repository tests. The release checks pass. Install the package in a profile that composes the required services, then run a long task to verify the behavior in your environment.

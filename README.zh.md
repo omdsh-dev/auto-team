@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-`dsh-auto-team` 是一个只跑在宿主侧的 DeepSeek Harness 插件，Cordis id 为 `auto-team`。它给长任务一个带评分的起点和团队式的执行方式，同时把具体分数留在模型上下文之外。
+`@oh-my-dsh/auto-team` 是一个只跑在宿主侧的 DeepSeek Harness 插件，Cordis id 为 `auto-team`。它给长任务一个带评分的起点和团队式的执行方式，同时把具体分数留在模型上下文之外。
 
 插件负责首轮判断、goal 桥接，以及 Lead 和执行 Agent 的策略闸门。队友、任务板和 worktree 工具由宿主 profile 提供。目标版本是 DSH 0.2.1-rc.2。
 
@@ -50,13 +50,19 @@ pnpm run build
 pnpm pack
 ```
 
-把 tarball 加进已经组合好上述服务的 profile：
+从 npm 安装已发布的包：
 
 ```sh
-dsh plugin --profile <profile> add ./your-scope-dsh-auto-team-0.0.1.tgz
+dsh plugin --profile <profile> add @oh-my-dsh/auto-team
 ```
 
-`package.json` 里的包名仍是模板占位 scope。发布前把 `@your-scope` 换成实际名字。
+或者安装本地打包的 tarball：
+
+```sh
+dsh plugin --profile <profile> add ./oh-my-dsh-auto-team-0.1.0.tgz
+```
+
+包名是 `@oh-my-dsh/auto-team`，发布在 `@oh-my-dsh` scope 下。
 
 ## 配置
 
@@ -114,4 +120,4 @@ pnpm pack --dry-run --json
 
 ## 状态
 
-核心流程已经可用，并有仓库测试覆盖。lint、测试、构建和打包检查都通过。仓库里没有真实 DSH profile 的组合测试环境；`tests/runtime.test.ts` 用真实 Cordis、真实 detached Session 和假的宿主服务覆盖安装路径。改动尚未提交。
+核心流程已经可用，并有仓库测试覆盖。发布检查已通过。把包装进已经组合好所需服务的 profile，跑一个长任务确认实际行为。

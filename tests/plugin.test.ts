@@ -71,7 +71,7 @@ async function testLogsOncePerActivation(): Promise<void> {
   await harness.dispose()
 }
 
-describe('@your-scope/dsh-auto-team', () => {
+describe('@oh-my-dsh/auto-team', () => {
   it(
     'preserves the function-plugin namespace through Loader unwrapping',
     { timeout: TEST_TIMEOUT },

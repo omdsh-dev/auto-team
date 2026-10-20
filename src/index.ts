@@ -1,7 +1,7 @@
 /**
  * Standalone function plugin for DeepSeek Harness.
  *
- * @module @your-scope/dsh-auto-team
+ * @module @oh-my-dsh/auto-team
  */
 
 /** Cordis plugin name; keep this stable after publishing. */

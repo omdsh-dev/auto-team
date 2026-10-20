@@ -2,7 +2,7 @@
  * Worker write/edit gate: a successful worktree is required, and when the host
  * returns its path, edits must stay inside it.
  *
- * @module @your-scope/dsh-auto-team/worker-guard
+ * @module @oh-my-dsh/auto-team/worker-guard
  */
 
 import path from 'node:path'

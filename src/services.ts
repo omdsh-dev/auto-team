@@ -1,7 +1,7 @@
 /**
  * Live Cordis service adapters for the auto-team ports.
  *
- * @module @your-scope/dsh-auto-team/services
+ * @module @oh-my-dsh/auto-team/services
  */
 
 import type { Context } from '@deepseek-ai/cordis'

@@ -4,7 +4,7 @@
  * The numeric score and effective threshold stay host-side. The model-facing
  * tool projects only the resulting team or solo decision.
  *
- * @module @your-scope/dsh-auto-team/policy
+ * @module @oh-my-dsh/auto-team/policy
  */
 
 /** The five difficulty factors assessed in the first round. */

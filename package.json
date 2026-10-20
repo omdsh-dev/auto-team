@@ -1,5 +1,5 @@
 {
-  "name": "@your-scope/dsh-auto-team",
+  "name": "@oh-my-dsh/auto-team",
   "description": "Score-gated Agent Teams workflow for DeepSeek Harness",
   "keywords": [
     "cordis",
@@ -8,10 +8,19 @@
     "dsh",
     "dsh-plugin",
     "auto-team",
+    "long-task",
     "agent-team",
     "goal"
   ],
   "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/omdsh-dev/auto-team.git"
+  },
+  "homepage": "https://github.com/omdsh-dev/auto-team#readme",
+  "bugs": {
+    "url": "https://github.com/omdsh-dev/auto-team/issues"
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -21,7 +30,7 @@
   },
   "type": "module",
   "packageManager": "pnpm@11.28.5",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "imports": {
     "#src/*": "./src/*.ts"
   },

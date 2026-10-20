@@ -2,7 +2,7 @@
  * Model-facing scoring tool. The numeric score and threshold are never part of
  * the tool result.
  *
- * @module @your-scope/dsh-auto-team/tool
+ * @module @oh-my-dsh/auto-team/tool
  */
 
 import { defineTool } from '@deepseek-ai/dsh-tools'

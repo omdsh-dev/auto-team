@@ -1,7 +1,7 @@
 /**
  * Serializable configuration, schema, and direct-call defaults for auto-team.
  *
- * @module @your-scope/dsh-auto-team/config
+ * @module @oh-my-dsh/auto-team/config
  */
 
 import schema from '@deepseek-ai/schemastery'

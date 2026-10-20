@@ -5,6 +5,6 @@
 
 - insert:
     - id: auto-team
-      name: '@your-scope/dsh-auto-team'
+      name: '@oh-my-dsh/auto-team'
       config:
         message: auto-team loaded

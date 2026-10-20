@@ -2,7 +2,7 @@
  * Cordis integration for auto-team: per-Lead prompt, scoring tool, and
  * first-round stop enforcement.
  *
- * @module @your-scope/dsh-auto-team/runtime
+ * @module @oh-my-dsh/auto-team/runtime
  */
 
 import type { Context } from '@deepseek-ai/cordis'

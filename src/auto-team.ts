@@ -2,7 +2,7 @@
  * Host-independent auto-team orchestration: scoring, goal reuse, and reporter
  * provisioning.
  *
- * @module @your-scope/dsh-auto-team/auto-team
+ * @module @oh-my-dsh/auto-team/auto-team
  */
 
 import type { Agent } from '@deepseek-ai/dsh-agent'
