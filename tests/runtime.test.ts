@@ -21,6 +21,9 @@ import { Config, apply, inject, name } from '#src/index'
 
 const plugin = { Config, apply, inject, name }
 const SIGNAL = new AbortController().signal
+const WORKTREE = `${process.cwd()}/.worktrees/worker`
+const INSIDE = `${WORKTREE}/src/a.ts`
+const OUTSIDE = `${process.cwd()}/src/a.ts`
 
 function noop(): void {
   return undefined
@@ -326,14 +329,14 @@ describe('auto-team runtime scoring and guards', () => {
 
       await post(
         { agent: runtime.worker.agent, name: 'create_worktree' },
-        { isError: false, value: { path: 'C:/repo/.worktrees/worker' } },
+        { isError: false, value: { path: WORKTREE } },
         async () => ({ kind: 'accept' }),
       )
       const outside = await pre(
         {
           agent: runtime.worker.agent,
           name: 'write',
-          arguments: { file_path: 'C:/repo/src/a.ts' },
+          arguments: { file_path: OUTSIDE },
         },
         async () => ({ kind: 'allow' }),
       )
@@ -346,7 +349,7 @@ describe('auto-team runtime scoring and guards', () => {
         {
           agent: runtime.worker.agent,
           name: 'write',
-          arguments: { file_path: 'C:/repo/.worktrees/worker/src/a.ts' },
+          arguments: { file_path: INSIDE },
         },
         async () => ({ kind: 'allow' }),
       )
