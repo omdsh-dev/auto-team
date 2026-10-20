@@ -15,7 +15,7 @@ function createScoreTool(autoTeam: AutoTeam): ToolDefinition {
   return defineTool({
     name: 'auto_team_score',
     description:
-      'Record the first-round difficulty assessment and return the team or solo decision. Call once before any other action. The decision is frozen and the numeric score is never shown.',
+      'Record the first-round difficulty assessment and return the team or solo decision. Call once before any other action; the decision is frozen for the task.',
     parameters: {
       scope: {
         type: 'integer',

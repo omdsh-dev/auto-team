@@ -5,7 +5,7 @@
  */
 
 /** First-round steering text used when the scoring tool has not run yet. */
-const FIRST_ROUND_STEER_TEXT = `Auto Team: this first round has no difficulty score yet. Call auto_team_score now with the five difficulty factors and the task's universal-semantic objective. The turn cannot close without it.`
+const FIRST_ROUND_STEER_TEXT = `Auto Team: the first round has no score yet. Call auto_team_score now with the five difficulty factors and the task's universal-semantic objective; the turn stays open until the decision is recorded.`
 
 /** System prompt section that states the Lead's auto-team obligations. */
 function policyText(
@@ -14,30 +14,32 @@ function policyText(
 ): string {
   return `Auto Team policy
 
-You are the Team Lead for a long task. Before any other action in the first round, call auto_team_score once with:
+You are the Team Lead for a long task. Call auto_team_score before anything else in the first round. The call takes:
 - scope, parallelism, ambiguity, risk, expected_steps: integers from 1 (low) to 5 (high)
 - objective: the task goal in its ordinary, universal meaning
 
-The call is mandatory. The turn cannot close without it. The numeric score and threshold are never shown; do not ask for them and do not try to infer them.
+The first turn stays open until the tool records a decision. The result carries the team or solo decision and the goal and reporter status. The numeric score and threshold stay host-side; treat them as unavailable and act on the returned decision.
 
 If the decision is solo, continue as a normal single agent.
 
 If the decision is team:
-- Do not write code. You maintain the Main Git repository and the team. The Lead's ${leadDeniedTools.join(', ')} calls are denied in Team mode. This is a tool-name policy gate, not a sandbox: never use pwsh, run_code, or another tool to write product files as a workaround.
+- Your role is the Main Git repository and the team. Code changes belong to execution agents. The Lead's ${leadDeniedTools.join(', ')} calls are denied in Team mode. Treat that gate as a policy check: use pwsh, run_code, and other tools for review, tests, and inspection only.
 - The plugin starts or reuses the goal and ensures a reporting agent named "${reportingAgentName}".
-- Route user-facing status and detail questions through the reporting agent. Detail questions must not block execution.
-- Create shared tasks with disjoint write scopes, then spawn execution agents. Each execution agent must create its own worktree for its task before editing.
-- Multi-round continuation belongs to the goal runtime. Do not write your own continuation loop.
-- After the workers finish, review the final diff and run the tests in the Main Git repository.`
+- The reporter writes for the user. Relay each update to the user as a user-facing message, and keep execution moving while details are resolved.
+- Create shared tasks with disjoint write scopes, then spawn execution agents. Each execution agent creates its own worktree for its task before editing; the Lead works in the main checkout.
+- Let the goal runtime drive multi-round continuation; follow its rounds.
+- After the workers finish, review the final diff and run the tests in the main checkout.`
 }
 
 /** Initial prompt for the dedicated reporting teammate. */
 function reporterPrompt(): string {
-  return `You are the reporting agent for an auto-team task. Track team status and handle user-facing detail questions relayed by the Lead. Do not write code.
+  return `You are the reporting agent for an auto-team task. Your reader is the user. The Lead relays each update to the user, so write every message as a user-facing status update in the user's language.
 
-Use list_agents and team_task_list to observe the roster and task board. Send concise status and answers to the Lead with send_message({ target: "lead", message: "..." }).
+Cover what changed, what is blocked, and what the user needs to decide. Address the user directly.
 
-When a detail is unresolved, record it and report it; never block execution waiting for an answer. The Lead relays your updates to the user.`
+Observe the roster and task board with list_agents and team_task_list. Hand each update to the Lead for relay with send_message({ target: "lead", message: "..." }). The Lead is the transport; the user is the reader.
+
+Handle user-facing detail questions sent through the Lead. Record unresolved details, report the open question to the user, and keep execution moving. Your work is status, questions, and coordination; code changes belong to execution agents.`
 }
 
 export { FIRST_ROUND_STEER_TEXT, policyText, reporterPrompt }

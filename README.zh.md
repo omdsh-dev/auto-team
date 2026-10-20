@@ -19,7 +19,7 @@
 决定使用团队后，插件会：
 
 - 复用当前 goal；没有 goal 就启动一个；
-- 确保存在名为 `reporter` 的汇报 Agent，名字可配置；
+- 确保存在名为 `reporter` 的汇报 Agent，名字可配置；它面向用户写更新，Lead 负责转达；
 - 提示 Lead 维护主 Git 仓库和团队，不写代码；
 - 默认拒绝 Lead 的 `write` 和 `edit`；
 - 要求每个执行 Agent 先成功调用 `create_worktree`，之后才允许自己的 `write` 或 `edit`；宿主返回 worktree 路径时，还会检查编辑路径是否在该 worktree 内。汇报 Agent 不受这条限制。

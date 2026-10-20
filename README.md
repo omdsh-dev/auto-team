@@ -19,7 +19,7 @@ The score is frozen for the task. It is written to the session log as a `plugin:
 On a team decision the plugin:
 
 - reuses the current goal, or starts one when none exists;
-- ensures a reporting teammate named `reporter`, which is configurable;
+- ensures a user-facing reporting teammate named `reporter`, which is configurable; the Lead relays its updates to the user;
 - tells the Lead to keep the main Git repository and the team, and not to write code;
 - denies the Lead's `write` and `edit` calls by default;
 - requires each execution teammate to complete `create_worktree` before its own `write` or `edit` is allowed, and checks that an edit path stays inside the registered worktree when the host returns one. The reporter is exempt.
