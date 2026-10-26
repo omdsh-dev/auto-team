@@ -46,7 +46,10 @@ interface FakeAgent {
 interface FakeCommand {
   readonly name: string
   readonly description: string
-  readonly handler: (invocation: { readonly agent: Agent }) => unknown
+  readonly handler: (invocation: {
+    readonly agent: Agent
+    readonly rawInput: string
+  }) => unknown
 }
 
 function requireCommand(commands: readonly FakeCommand[]): FakeCommand {
@@ -55,6 +58,16 @@ function requireCommand(commands: readonly FakeCommand[]): FakeCommand {
     throw new Error('reset command was not registered')
   }
   return command
+}
+
+function firstCall(
+  calls: readonly unknown[][] | undefined,
+): readonly unknown[] {
+  const [call] = calls ?? []
+  if (call === undefined) {
+    throw new Error('expected at least one call')
+  }
+  return call
 }
 
 interface Fakes {
@@ -330,12 +343,39 @@ describe('auto-team runtime scoring and guards', () => {
       expect(runtime.commands).toHaveLength(1)
       const command = requireCommand(runtime.commands)
       expect(command.name).toBe('auto-team-reset')
-      const result = await command.handler({ agent: runtime.lead.agent })
-      expect(result).toStrictEqual({
-        kind: 'success',
-        text: expect.any(String),
+
+      const silent = await command.handler({
+        agent: runtime.lead.agent,
+        rawInput: '',
       })
+      expect(silent).toStrictEqual({ kind: 'success' })
+      expect(runtime.lead.steer).not.toHaveBeenCalled()
+
+      await tool.execute(
+        {
+          scope: 5,
+          parallelism: 5,
+          ambiguity: 5,
+          risk: 5,
+          expected_steps: 5,
+          objective: 'ship the feature',
+        },
+        {
+          agent: runtime.lead.agent,
+          signal: SIGNAL,
+        } as unknown as ToolRunContext,
+      )
+      const withMessage = await command.handler({
+        agent: runtime.lead.agent,
+        rawInput: '  continue with the next step  ',
+      })
+      expect(withMessage).toStrictEqual({ kind: 'success' })
       expect(runtime.lead.steer).toHaveBeenCalledTimes(1)
+      const [steered] = firstCall(runtime.lead.steer.mock.calls)
+      expect(steered).toMatchObject({
+        role: 'user',
+        content: [{ type: 'text', text: 'continue with the next step' }],
+      })
     } finally {
       await runtime.fiber.dispose()
     }

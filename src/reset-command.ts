@@ -8,11 +8,11 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createMessage } from '@deepseek-ai/dsh-llm'
 
 import type { AutoTeam } from './auto-team.ts'
-import { RESET_STEER_TEXT } from './prompt.ts'
 
 /** Exact agent that invoked the command. */
 interface CommandInvocation {
   readonly agent: Agent
+  readonly rawInput: string
 }
 
 /** Result rendered directly by the dispatching UI. */
@@ -37,8 +37,7 @@ interface CommandRuntime {
 function createResetCommand(autoTeam: AutoTeam): CommandDefinition {
   return {
     name: 'auto-team-reset',
-    description:
-      'Clear the frozen Auto Team score for this session and ask the Lead to score again.',
+    description: 'Clear the frozen Auto Team score for this session.',
     handler: (invocation) => {
       if (autoTeam.decisionOf(invocation.agent) === undefined) {
         return {
@@ -48,17 +47,17 @@ function createResetCommand(autoTeam: AutoTeam): CommandDefinition {
       }
 
       autoTeam.reset(invocation.agent)
-      invocation.agent.steer(
-        createMessage({
-          role: 'user',
-          content: [{ type: 'text', text: RESET_STEER_TEXT }],
-          source: { kind: 'user' },
-        }),
-      )
-      return {
-        kind: 'success',
-        text: 'Auto Team score reset. The Lead will score again.',
+      const message = invocation.rawInput.trim()
+      if (message.length > 0) {
+        invocation.agent.steer(
+          createMessage({
+            role: 'user',
+            content: [{ type: 'text', text: message }],
+            source: { kind: 'user' },
+          }),
+        )
       }
+      return { kind: 'success' }
     },
   }
 }

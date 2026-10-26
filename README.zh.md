@@ -104,7 +104,7 @@ profile 提供宿主 `commands` 服务时，插件注册 `auto-team-reset`：
 
 - `/auto-team-reset` 清空当前 session 的冻结分数。
 - 它写入 `plugin:auto-team/reset` 记录，resume 时不会恢复被清掉的分数。
-- 它提示 Lead 重新调用 `auto_team_score`；当前 goal 和汇报 Agent 保留。
+- 它默认静默，不发送消息；命令后附带的文字会作为用户消息发给 Lead。想让 Lead 重新打分就写 `/auto-team-reset call auto_team_score again`。当前 goal 和汇报 Agent 保留。
 - 命令由用户触发，模型不能调用。
 
 ## 闸门与限制

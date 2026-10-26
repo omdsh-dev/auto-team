@@ -104,7 +104,7 @@ When the profile provides the host `commands` service, the plugin registers `aut
 
 - `/auto-team-reset` clears the frozen score for the current session.
 - It appends a `plugin:auto-team/reset` record, so resuming the session does not restore the cleared score.
-- It steers the Lead to call `auto_team_score` again. The current goal and reporter stay in place.
+- It is silent by default. Any text after the command is sent to the Lead as a user message; use `/auto-team-reset call auto_team_score again` when you want the Lead to re-score. The current goal and reporter stay in place.
 - The command is user-triggered; the model cannot invoke it.
 
 ## Guards and limits
