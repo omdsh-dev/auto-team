@@ -60,7 +60,7 @@ dsh plugin --profile <profile> add @oh-my-dsh/auto-team
 Or install a locally packed tarball:
 
 ```sh
-dsh plugin --profile <profile> add ./oh-my-dsh-auto-team-0.1.1.tgz
+dsh plugin --profile <profile> add ./oh-my-dsh-auto-team-0.1.2.tgz
 ```
 
 The package name is `@oh-my-dsh/auto-team`, published under the `@oh-my-dsh` scope.
