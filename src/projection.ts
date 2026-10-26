@@ -1,8 +1,9 @@
 /**
- * Durable, host-only projection for the frozen auto-team score.
+ * Durable, host-only projection for the auto-team score.
  *
- * The score is appended as an ignorable plugin record. The projection keeps the
- * first record and never exposes the numeric score to the model or client.
+ * A score record freezes the decision. A user-triggered reset record clears it
+ * so the next score can be recorded. The numeric score never reaches the model
+ * or client.
  *
  * @module @oh-my-dsh/auto-team/projection
  */
@@ -23,6 +24,7 @@ interface AutoTeamProjectionState {
 declare module '@deepseek-ai/dsh-session/types' {
   interface PluginRecordMap {
     'plugin:auto-team/score': ScoreRecord
+    'plugin:auto-team/reset': { at: number }
   }
 }
 
@@ -33,6 +35,7 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
 }
 
 const SCORE_RECORD_TYPE = 'plugin:auto-team/score'
+const RESET_RECORD_TYPE = 'plugin:auto-team/reset'
 const scoreRecordSchema = z.object({
   score: z.number().min(0).max(1),
   threshold: z.number().min(0).max(1),
@@ -45,13 +48,22 @@ const autoTeamProjectionStateSchema = z.object({
   failure: z.string().optional(),
 })
 
-/** Fold one committed event into the first frozen score record. */
+/** Fold the first score after the latest reset into one durable decision. */
 function applyAutoTeamProjection(
   state: AutoTeamProjectionState,
   event: SessionEvent,
 ): AutoTeamProjectionState {
   const record = pluginRecordOf(event)
-  if (record === undefined || record.type !== SCORE_RECORD_TYPE) {
+  if (record === undefined) {
+    return state
+  }
+  if (record.type === RESET_RECORD_TYPE) {
+    if (state.score === undefined) {
+      return state
+    }
+    return { ...state, score: undefined }
+  }
+  if (record.type !== SCORE_RECORD_TYPE) {
     return state
   }
   if (state.score !== undefined) {

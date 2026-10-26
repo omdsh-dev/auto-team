@@ -14,7 +14,7 @@
 
 首轮必须打分。如果这一轮想在没有调用工具时结束，`agent/turn-stopping` 监听器会把 Lead 拉回来，再发一次提醒。
 
-分数在任务内冻结。它以 `plugin:auto-team/score` 记录写进 session log，并折进宿主侧的 `autoTeam` 投影。resume 时恢复这个决定，不会重新打分。
+分数在任务内冻结。只有用户主动执行 `/auto-team-reset` 才能清空；下一次打分成为新的冻结决定。它以 `plugin:auto-team/score` 记录写进 session log，并折进宿主侧的 `autoTeam` 投影。resume 时恢复这个决定，不会重新打分。
 
 决定使用团队后，插件会：
 
@@ -35,8 +35,9 @@ profile 需要组合这些宿主服务：
 - `agents`、`tools`、`systemPrompt`、`sessionProjections`
 - `agentTeams`，来自 `@deepseek-ai/dsh-experimental-agent-team`
 - `goals`，来自 `@deepseek-ai/dsh-goal`
+- `commands`（可选；启用 `/auto-team-reset`）
 
-服务缺失时插件仍会加载，但只打一条警告，不安装任何东西。之后某个服务到位，`internal/service` 监听器会重试安装。
+必需服务缺失时插件仍会加载，但只打一条警告，不安装任何东西。之后某个服务到位，`internal/service` 监听器会重试安装。`commands` 服务是可选的：没有它，打分工具照常工作，但不会注册 `/auto-team-reset`。
 
 ## 安装
 
@@ -97,6 +98,15 @@ dsh plugin --profile <profile> add ./oh-my-dsh-auto-team-0.1.0.tgz
 
 返回 `{ decision, goal, reporter? }`。分数和阈值不在返回里。创建队友、发消息和共享任务板由宿主的 Agent Teams 工具负责；完成和续跑由宿主的 goal 生命周期负责。
 
+## 命令
+
+profile 提供宿主 `commands` 服务时，插件注册 `auto-team-reset`：
+
+- `/auto-team-reset` 清空当前 session 的冻结分数。
+- 它写入 `plugin:auto-team/reset` 记录，resume 时不会恢复被清掉的分数。
+- 它提示 Lead 重新调用 `auto_team_score`；当前 goal 和汇报 Agent 保留。
+- 命令由用户触发，模型不能调用。
+
 ## 闸门与限制
 
 - Lead 的闸门是工具名策略，不是沙箱。`pwsh`、`run_code` 和直接的文件系统操作可以绕过。策略文本会明确要求 Lead 不要拿它们绕路。
@@ -114,7 +124,7 @@ pnpm run build
 pnpm pack --dry-run --json
 ```
 
-测试覆盖评分策略、配置、goal 与汇报 Agent 编排、持久化分数投影、运行时安装路径，以及 Loader 导出形状。
+测试覆盖评分策略、配置、goal 与汇报 Agent 编排、持久化分数投影与重设、重设命令、运行时安装路径，以及 Loader 导出形状。
 
 行为说明和流程图见[设计文档](docs/auto-team-design.md)，包规则见[插件契约](docs/dsh-plugin-contracts.md)。
 

@@ -26,6 +26,16 @@ function scoreEvent(data: unknown): SessionEvent {
   } as unknown as SessionEvent
 }
 
+function resetEvent(): SessionEvent {
+  return {
+    type: 'plugin:auto-team/reset',
+    ignorable: true,
+    seq: 1,
+    time: 1,
+    data: { at: 1 },
+  } as unknown as SessionEvent
+}
+
 function unrelatedEvent(): SessionEvent {
   return {
     type: 'user/message',
@@ -54,6 +64,17 @@ describe('auto-team score projection', () => {
     const state = applyAutoTeamProjection({}, scoreEvent({ score: 'invalid' }))
     expect(state.score).toBeUndefined()
     expect(state.failure).toBeTypeOf('string')
+  })
+
+  it('clears the score so a later score can replace it', () => {
+    const scored = applyAutoTeamProjection({}, scoreEvent(RECORD))
+    const reset = applyAutoTeamProjection(scored, resetEvent())
+    expect(reset.score).toBeUndefined()
+    const rescored = applyAutoTeamProjection(
+      reset,
+      scoreEvent({ ...RECORD, score: 1 }),
+    )
+    expect(rescored.score?.score).toBe(1)
   })
 
   it('ignores unrelated events', () => {

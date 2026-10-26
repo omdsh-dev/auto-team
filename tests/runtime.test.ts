@@ -43,6 +43,20 @@ interface FakeAgent {
   readonly session: Session
 }
 
+interface FakeCommand {
+  readonly name: string
+  readonly description: string
+  readonly handler: (invocation: { readonly agent: Agent }) => unknown
+}
+
+function requireCommand(commands: readonly FakeCommand[]): FakeCommand {
+  const [command] = commands
+  if (command === undefined) {
+    throw new Error('reset command was not registered')
+  }
+  return command
+}
+
 interface Fakes {
   readonly goalsCreated: unknown[]
   readonly members: { name: string }[]
@@ -50,6 +64,7 @@ interface Fakes {
 }
 
 interface Runtime {
+  readonly commands: FakeCommand[]
   readonly ctx: Context
   readonly fiber: Awaited<ReturnType<Context['plugin']>>
   readonly fakes: Fakes
@@ -187,6 +202,13 @@ async function createRuntime(): Promise<Runtime> {
     },
     stateOf: () => undefined,
   } as unknown as SessionProjectionRegistry
+  const commands: FakeCommand[] = []
+  const commandRuntime = {
+    register: (definition: FakeCommand): (() => void) => {
+      commands.push(definition)
+      return noop
+    },
+  }
 
   const ctx = new Context()
   // Provide the host services from a sibling fiber, as the real profile does.
@@ -199,13 +221,14 @@ async function createRuntime(): Promise<Runtime> {
       host.provide('tools', tools)
       host.provide('systemPrompt', systemPrompt)
       host.provide('sessionProjections', sessionProjections)
+      host.provide('commands', commandRuntime)
     },
   })
   const fiber = await ctx.plugin(plugin, {})
   ctx.events.emit('agent/created', { agent: lead.agent, source: 'startup' })
   ctx.events.emit('agent/created', { agent: worker.agent, source: 'startup' })
 
-  return { ctx, fiber, fakes, lead, worker }
+  return { commands, ctx, fiber, fakes, lead, worker }
 }
 
 describe('auto-team runtime installation', () => {
@@ -280,6 +303,39 @@ describe('auto-team runtime scoring and guards', () => {
         kind: 'deny',
         reason: expect.any(String),
       })
+    } finally {
+      await runtime.fiber.dispose()
+    }
+  })
+
+  it('registers and runs the user reset command', async () => {
+    const runtime = await createRuntime()
+    try {
+      const tool = runtime.lead.scope.tools[0] as ToolDefinition
+      await tool.execute(
+        {
+          scope: 5,
+          parallelism: 5,
+          ambiguity: 5,
+          risk: 5,
+          expected_steps: 5,
+          objective: 'ship the feature',
+        },
+        {
+          agent: runtime.lead.agent,
+          signal: SIGNAL,
+        } as unknown as ToolRunContext,
+      )
+
+      expect(runtime.commands).toHaveLength(1)
+      const command = requireCommand(runtime.commands)
+      expect(command.name).toBe('auto-team-reset')
+      const result = await command.handler({ agent: runtime.lead.agent })
+      expect(result).toStrictEqual({
+        kind: 'success',
+        text: expect.any(String),
+      })
+      expect(runtime.lead.steer).toHaveBeenCalledTimes(1)
     } finally {
       await runtime.fiber.dispose()
     }

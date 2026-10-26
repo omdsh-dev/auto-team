@@ -14,7 +14,7 @@ The plugin turns the factors into a weighted score from 0 to 1. The model gets o
 
 The first round must be scored. If the turn tries to close before the tool ran, an `agent/turn-stopping` listener steers the Lead back with a reminder.
 
-The score is frozen for the task. It is written to the session log as a `plugin:auto-team/score` record and folded into the host-only `autoTeam` projection, so resuming a session keeps the decision and does not score again.
+The score is frozen for the task. Only a user-triggered `/auto-team-reset` clears it; the next score becomes the new frozen decision. It is written to the session log as a `plugin:auto-team/score` record and folded into the host-only `autoTeam` projection, so resuming a session keeps the decision and does not score again.
 
 On a team decision the plugin:
 
@@ -35,8 +35,9 @@ The profile must compose these host services:
 - `agents`, `tools`, `systemPrompt`, `sessionProjections`
 - `agentTeams` from `@deepseek-ai/dsh-experimental-agent-team`
 - `goals` from `@deepseek-ai/dsh-goal`
+- `commands` (optional; enables `/auto-team-reset`)
 
-The plugin loads without them but logs a warning and installs nothing. When a service arrives later, an `internal/service` listener retries the install.
+The plugin loads without the required services but logs a warning and installs nothing. When a service arrives later, an `internal/service` listener retries the install. The `commands` service is optional: without it the score tool still works and `/auto-team-reset` is not registered.
 
 ## Install
 
@@ -97,6 +98,15 @@ The package adds one model-facing tool.
 
 It returns `{ decision, goal, reporter? }`. The numeric score and threshold are not in the result. The host's Agent Teams tools handle spawning, messaging, and the shared task board. The host goal lifecycle handles completion and continuation.
 
+## Commands
+
+When the profile provides the host `commands` service, the plugin registers `auto-team-reset`:
+
+- `/auto-team-reset` clears the frozen score for the current session.
+- It appends a `plugin:auto-team/reset` record, so resuming the session does not restore the cleared score.
+- It steers the Lead to call `auto_team_score` again. The current goal and reporter stay in place.
+- The command is user-triggered; the model cannot invoke it.
+
 ## Guards and limits
 
 - The Lead gate is a tool-name policy, not a sandbox. `pwsh`, `run_code`, and direct filesystem effects can bypass it. The policy tells the Lead not to use them as a workaround.
@@ -114,7 +124,7 @@ pnpm run build
 pnpm pack --dry-run --json
 ```
 
-The tests cover the scoring policy, configuration, goal and reporter orchestration, the durable score projection, the runtime install path, and the Loader export shape.
+The tests cover the scoring policy, configuration, goal and reporter orchestration, the durable score projection and reset, the reset command, the runtime install path, and the Loader export shape.
 
 Read [the design note](docs/auto-team-design.md) for the behavior and the flow chart, and [the plugin contracts](docs/dsh-plugin-contracts.md) for the package rules.
 

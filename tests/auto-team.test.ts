@@ -94,6 +94,9 @@ function createFakes(): Fakes {
     write: (agent, record) => {
       stored.set(agent, record)
     },
+    reset: (agent) => {
+      stored.delete(agent)
+    },
   }
 
   return {
@@ -294,6 +297,21 @@ describe('auto-team persisted score', () => {
     expect(result).toStrictEqual({ decision: 'solo', goal: 'none' })
     expect(fakes.created).toHaveLength(0)
     expect(fakes.spawns).toHaveLength(0)
+  })
+
+  it('clears the frozen record on reset', async () => {
+    const fakes = createFakes()
+    const autoTeam = createAutoTeam(fakes)
+    await autoTeam.score(AGENT, {
+      assessment: HIGH,
+      objective: 'ship the feature',
+      signal: SIGNAL,
+    })
+
+    expect(autoTeam.hasScore(AGENT)).toBeTruthy()
+    autoTeam.reset(AGENT)
+    expect(autoTeam.hasScore(AGENT)).toBeFalsy()
+    expect(fakes.stored.has(AGENT)).toBeFalsy()
   })
 
   it('restores a record without rescoring', async () => {

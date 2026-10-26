@@ -69,6 +69,7 @@ interface TeamPort {
 interface ScoreStore {
   readonly read: (agent: Agent) => ScoreRecord | undefined
   readonly write: (agent: Agent, record: ScoreRecord) => void
+  readonly reset: (agent: Agent) => void
 }
 
 /** Host operations used by the orchestrator. */
@@ -90,6 +91,7 @@ interface ScoreRecord {
 /** Host-side auto-team state and operations. */
 class AutoTeam {
   private readonly records = new WeakMap<Agent, ScoreRecord>()
+  private readonly resets = new Set<Agent>()
   private readonly deps: AutoTeamDeps
   private readonly config: ResolvedConfig
 
@@ -100,19 +102,29 @@ class AutoTeam {
 
   /** Whether this agent already has a frozen score. */
   public hasScore(agent: Agent): boolean {
-    return this.records.has(agent)
+    return !this.resets.has(agent) && this.records.has(agent)
   }
 
   /** Seed a record restored from durable storage without scoring again. */
   public restore(agent: Agent, record: ScoreRecord): void {
-    if (!this.records.has(agent)) {
+    if (!this.resets.has(agent) && !this.records.has(agent)) {
       this.records.set(agent, record)
     }
   }
 
   /** The frozen team decision, when this agent has one. */
   public decisionOf(agent: Agent): TeamDecision | undefined {
+    if (this.resets.has(agent)) {
+      return undefined
+    }
     return (this.records.get(agent) ?? this.deps.store.read(agent))?.decision
+  }
+
+  /** Clear the frozen score after a user-triggered reset. */
+  public reset(agent: Agent): void {
+    this.deps.store.reset(agent)
+    this.records.delete(agent)
+    this.resets.add(agent)
   }
 
   /**
@@ -123,7 +135,10 @@ class AutoTeam {
     agent: Agent,
     request: ScoreRequest,
   ): Promise<ScoreResult> {
-    const existing = this.records.get(agent) ?? this.deps.store.read(agent)
+    let existing = this.records.get(agent) ?? this.deps.store.read(agent)
+    if (this.resets.has(agent)) {
+      existing = undefined
+    }
     if (existing !== undefined) {
       this.records.set(agent, existing)
       const frozen = await this.finish(agent, existing, request.signal)
@@ -155,6 +170,7 @@ class AutoTeam {
     }
     this.deps.store.write(agent, record)
     this.records.set(agent, record)
+    this.resets.delete(agent)
     const finished = await this.finish(agent, record, request.signal)
     return finished
   }

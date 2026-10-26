@@ -93,6 +93,7 @@
     {
       "files": ["src/runtime.ts"],
       "rules": {
+        "eslint/max-lines-per-function": "off",
         "import/max-dependencies": "off"
       }
     },
@@ -100,6 +101,7 @@
       "files": ["tests/**/*.ts"],
       "rules": {
         "eslint/max-lines": "off",
+        "eslint/max-lines-per-function": "off",
         "eslint/require-await": "off",
         "typescript/no-unsafe-assignment": "off",
         "typescript/no-unsafe-type-assertion": "off",

@@ -62,6 +62,11 @@ function createAutoTeam(ctx: Context, config: ResolvedConfig): AutoTeam {
     write: (agent, record) => {
       appendPluginRecord(agent.session, 'plugin:auto-team/score', record)
     },
+    reset: (agent) => {
+      appendPluginRecord(agent.session, 'plugin:auto-team/reset', {
+        at: Date.now(),
+      })
+    },
   }
   return new AutoTeam({ goals, team, store }, config)
 }

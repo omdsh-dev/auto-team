@@ -7,6 +7,9 @@
 /** First-round steering text used when the scoring tool has not run yet. */
 const FIRST_ROUND_STEER_TEXT = `Auto Team: the first round has no score yet. Call auto_team_score now with the five difficulty factors and the task's universal-semantic objective; the turn stays open until the decision is recorded.`
 
+/** Steering text used after the user resets the frozen score. */
+const RESET_STEER_TEXT = `Auto Team: the user reset the score. Call auto_team_score again with the current task's difficulty factors and objective before continuing.`
+
 /** System prompt section that states the Lead's auto-team obligations. */
 function policyText(
   reportingAgentName: string,
@@ -42,4 +45,4 @@ Observe the roster and task board with list_agents and team_task_list. Hand each
 Handle user-facing detail questions sent through the Lead. Record unresolved details, report the open question to the user, and keep execution moving. Your work is status, questions, and coordination; code changes belong to execution agents.`
 }
 
-export { FIRST_ROUND_STEER_TEXT, policyText, reporterPrompt }
+export { FIRST_ROUND_STEER_TEXT, RESET_STEER_TEXT, policyText, reporterPrompt }

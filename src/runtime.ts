@@ -15,6 +15,7 @@ import { resolveConfig } from './config.ts'
 import type { PluginConfig, ResolvedConfig } from './config.ts'
 import { autoTeamProjectionDefinition } from './projection.ts'
 import { FIRST_ROUND_STEER_TEXT, policyText } from './prompt.ts'
+import { createResetCommand, isCommandRuntime } from './reset-command.ts'
 import { createAutoTeam } from './services.ts'
 import { createScoreTool } from './tool.ts'
 import { installWorkerGuard } from './worker-guard.ts'
@@ -144,6 +145,7 @@ function apply(ctx: Context, config: PluginConfig): void {
   const installed = new Map<Agent, () => void>()
   let warned = false
   let projectionRegistered = false
+  let resetCommandRegistered = false
 
   const ensureProjection = (): void => {
     if (projectionRegistered) {
@@ -161,6 +163,23 @@ function apply(ctx: Context, config: PluginConfig): void {
   }
 
   ensureProjection()
+
+  const ensureResetCommand = (): void => {
+    if (resetCommandRegistered) {
+      return
+    }
+    const commands: unknown = ctx.get('commands')
+    if (!isCommandRuntime(commands)) {
+      return
+    }
+    ctx.effect(
+      () => commands.register(createResetCommand(autoTeam)),
+      'auto-team.reset-command()',
+    )
+    resetCommandRegistered = true
+  }
+
+  ensureResetCommand()
 
   const install = (agent: Agent, source?: SessionStartSource): void => {
     if (installed.has(agent)) {
@@ -218,10 +237,12 @@ function apply(ctx: Context, config: PluginConfig): void {
       && name !== 'tools'
       && name !== 'systemPrompt'
       && name !== 'sessionProjections'
+      && name !== 'commands'
     ) {
       return
     }
     ensureProjection()
+    ensureResetCommand()
     for (const agent of ctx.get('agents')?.list() ?? []) {
       install(agent)
     }
