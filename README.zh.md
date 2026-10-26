@@ -60,7 +60,7 @@ dsh plugin --profile <profile> add @oh-my-dsh/auto-team
 或者安装本地打包的 tarball：
 
 ```sh
-dsh plugin --profile <profile> add ./oh-my-dsh-auto-team-0.1.0.tgz
+dsh plugin --profile <profile> add ./oh-my-dsh-auto-team-0.1.1.tgz
 ```
 
 包名是 `@oh-my-dsh/auto-team`，发布在 `@oh-my-dsh` scope 下。
