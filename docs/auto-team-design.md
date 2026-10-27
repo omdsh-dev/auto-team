@@ -36,7 +36,7 @@ Lead 在首轮根据任务难度自动判断是否需要 Agent Team。判断通�
 
 auto-team 的多轮连续执行完全复用 goal 的机制，不另写一套循环。
 
-长任务开始时只有两种状态：用户已经触发 goal，或者没有 goal。
+长任务开始时只有两种状态：用户已经触发有效的 goal，或者没有有效 goal。已完成的 goal 不算当前 goal，新的 team 决策会替换它。
 
 如果用户没有 goal，但选择了 team，auto-team 会自动启动 goal。
 

@@ -213,6 +213,41 @@ describe('auto-team reporter lifecycle', () => {
     expect(fakes.spawns).toHaveLength(0)
   })
 
+  it('starts a new goal when the current goal is complete', async () => {
+    const fakes = createFakes()
+    const completed = {
+      objective: 'previous task',
+      phase: 'complete',
+    } as unknown as GoalView
+    const goals: GoalPort = {
+      get: () => completed,
+      create: (agent, request) => {
+        fakes.created.push(request)
+        fakes.agentsWithGoal.add(agent)
+        return { objective: request.objective } as unknown as GoalView
+      },
+    }
+    const autoTeam = new AutoTeam(
+      { goals, store: fakes.store, team: fakes.team },
+      resolveConfig(),
+    )
+
+    const result = await autoTeam.score(AGENT, {
+      assessment: HIGH,
+      objective: 'new task',
+      signal: SIGNAL,
+    })
+
+    expect(result).toStrictEqual({
+      decision: 'team',
+      goal: 'started',
+      reporter: 'reporter',
+    })
+    expect(fakes.created).toStrictEqual([
+      { objective: 'new task', maxGoalRounds: 256 },
+    ])
+  })
+
   it('rejects an empty objective before starting a goal', async () => {
     const fakes = createFakes()
     const autoTeam = createAutoTeam(fakes)

@@ -145,7 +145,11 @@ class AutoTeam {
       return frozen
     }
 
-    const existingGoal = this.deps.goals.get(agent)
+    const currentGoal = this.deps.goals.get(agent)
+    let existingGoal = currentGoal
+    if (currentGoal?.phase === 'complete') {
+      existingGoal = undefined
+    }
     const manualGoal = existingGoal !== undefined
     const decision = createScoreDecision(request.assessment, {
       weights: this.config.weights,

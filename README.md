@@ -10,7 +10,7 @@ The plugin adds the first-round decision, the goal bridge, and the Lead and work
 
 The Lead calls `auto_team_score` once in the first round. The call takes five factors from 1 to 5, covering scope, parallelism, ambiguity, risk, and expected_steps, plus the task goal in its ordinary meaning.
 
-The plugin turns the factors into a weighted score from 0 to 1. The model gets only `team` or `solo`; the score and the effective threshold stay host-side. The default threshold is 0.55. If a user-created goal already exists at the first score, the threshold is multiplied by 0.6.
+The plugin turns the factors into a weighted score from 0 to 1. The model gets only `team` or `solo`; the score and the effective threshold stay host-side. The default threshold is 0.55. If an active user-created goal already exists at the first score, the threshold is multiplied by 0.6.
 
 The first round must be scored. If the turn tries to close before the tool ran, an `agent/turn-stopping` listener steers the Lead back with a reminder.
 
@@ -18,7 +18,7 @@ The score is frozen for the task. Only a user-triggered `/auto-team-reset` clear
 
 On a team decision the plugin:
 
-- reuses the current goal, or starts one when none exists;
+- reuses the current goal, or starts one when no active goal exists; a completed goal is replaced;
 - ensures a user-facing reporting teammate named `reporter`, which is configurable; the Lead relays its updates to the user;
 - tells the Lead to keep the main Git repository and the team, and not to write code;
 - denies the Lead's `write` and `edit` calls by default;
