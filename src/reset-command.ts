@@ -8,6 +8,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createMessage } from '@deepseek-ai/dsh-llm'
 
 import type { AutoTeam } from './auto-team.ts'
+import { registerScoreTool } from './tool.ts'
 
 /** Exact agent that invoked the command. */
 interface CommandInvocation {
@@ -47,6 +48,7 @@ function createResetCommand(autoTeam: AutoTeam): CommandDefinition {
       }
 
       autoTeam.reset(invocation.agent)
+      registerScoreTool(invocation.agent.ctx.tools, autoTeam)
       const message = invocation.rawInput.trim()
       if (message.length > 0) {
         invocation.agent.steer(

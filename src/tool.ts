@@ -6,16 +6,15 @@
  */
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
+import type { ToolDefinition, ToolRuntime } from '@deepseek-ai/dsh-tools'
 
 import type { AutoTeam } from './auto-team.ts'
 
 /** Build the one-shot scoring tool for a Lead agent scope. */
-function createScoreTool(autoTeam: AutoTeam): ToolDefinition {
+function scoreTool(autoTeam: AutoTeam, onScored?: () => void): ToolDefinition {
   return defineTool({
     name: 'auto_team_score',
-    description:
-      'Record the first-round difficulty assessment and return the team or solo decision. Call once before any other action; the decision is frozen for the task.',
+    description: 'Record the assessment. Call when no decision exists.',
     parameters: {
       scope: {
         type: 'integer',
@@ -93,9 +92,19 @@ function createScoreTool(autoTeam: AutoTeam): ToolDefinition {
         objective: args.objective,
         signal: exec.signal,
       })
+      onScored?.()
       return result
     },
   })
 }
 
-export { createScoreTool }
+function registerScoreTool(tools: ToolRuntime, autoTeam: AutoTeam): () => void {
+  const holder = { dispose: (): void => undefined }
+  const dispose = (): void => {
+    holder.dispose()
+  }
+  holder.dispose = tools.register(scoreTool(autoTeam, dispose))
+  return holder.dispose
+}
+
+export { registerScoreTool, scoreTool }

@@ -17,7 +17,7 @@ import { autoTeamProjectionDefinition } from './projection.ts'
 import { FIRST_ROUND_STEER_TEXT, policyText } from './prompt.ts'
 import { createResetCommand, isCommandRuntime } from './reset-command.ts'
 import { createAutoTeam } from './services.ts'
-import { createScoreTool } from './tool.ts'
+import { registerScoreTool } from './tool.ts'
 import { installWorkerGuard } from './worker-guard.ts'
 
 /** Auto-team instance type built from the live service adapters. */
@@ -67,7 +67,9 @@ function installLead(options: InstallLeadOptions): () => void {
         text: policyText(config.reportingAgentName, config.leadDeniedTools),
       }),
     )
-    register(tools.register(createScoreTool(autoTeam)))
+    if (!autoTeam.hasScore(agent)) {
+      register(registerScoreTool(tools, autoTeam))
+    }
 
     if (source === 'startup' || source === 'clear') {
       const stop = agent.ctx.on('agent/turn-stopping', (payload) => {
