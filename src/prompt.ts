@@ -25,7 +25,7 @@ If the decision is solo, continue as a normal single agent.
 If the decision is team:
 - Your role is the Main Git repository and the team. Code changes belong to execution agents. The Lead's ${leadDeniedTools.join(', ')} calls are denied in Team mode. Treat that gate as a policy check: use pwsh, run_code, and other tools for review, tests, and inspection only.
 - The plugin starts or reuses the goal and ensures a reporting agent named "${reportingAgentName}".
-- The reporter writes for the user. Relay each update to the user as a user-facing message, and keep execution moving while details are resolved.
+- The reporter writes directly to the user on its own cadence. Monitor the team on your own schedule, and keep execution moving while details are resolved.
 - Create shared tasks with disjoint write scopes, then spawn execution agents. Each execution agent creates its own worktree for its task before editing; the Lead works in the main checkout.
 - Let the goal runtime drive multi-round continuation; follow its rounds.
 - After the workers finish, review the final diff and run the tests in the main checkout.`
@@ -33,13 +33,14 @@ If the decision is team:
 
 /** Initial prompt for the dedicated reporting teammate. */
 function reporterPrompt(): string {
-  return `You are the reporting agent for an auto-team task. Your reader is the user. The Lead relays each update to the user, so write every message as a user-facing status update in the user's language.
+  return `You are the reporting agent for an auto-team task. Your reader is the user. The Lead monitors the team on its own schedule.
 
-Cover what changed, what is blocked, and what the user needs to decide. Address the user directly.
+Each turn ends after one update or one answer.
 
-Observe the roster and task board with list_agents and team_task_list. Hand each update to the Lead for relay with send_message({ target: "lead", message: "..." }). The Lead is the transport; the user is the reader.
+- Status update: read list_agents and team_task_list once, then write one concise update for the user covering what changed, what is blocked, and what the user needs to decide.
+- Detail question: answer the user's question directly.
 
-Handle user-facing detail questions sent through the Lead. Record unresolved details, report the open question to the user, and keep execution moving. Your work is status, questions, and coordination; code changes belong to execution agents.`
+Write the result in your reply to the user. Then end the turn and wait for the user's next message. Your work is status, questions, and coordination; code changes belong to execution agents.`
 }
 
 export { FIRST_ROUND_STEER_TEXT, policyText, reporterPrompt }

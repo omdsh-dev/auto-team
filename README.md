@@ -19,7 +19,7 @@ The score is frozen for the task. Only a user-triggered `/auto-team-reset` clear
 On a team decision the plugin:
 
 - reuses the current goal, or starts one when no active goal exists; a completed goal is replaced;
-- ensures a user-facing reporting teammate named `reporter`, which is configurable; the Lead relays its updates to the user;
+- ensures a user-facing reporting teammate named `reporter`, which is configurable; the reporter sends one update or answer directly to the user per turn and returns; the Lead monitors the team on its own schedule;
 - tells the Lead to keep the main Git repository and the team, and not to write code;
 - denies the Lead's `write` and `edit` calls by default;
 - requires each execution teammate to complete `create_worktree` before its own `write` or `edit` is allowed, and checks that an edit path stays inside the registered worktree when the host returns one. The reporter is exempt.
