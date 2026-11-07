@@ -6,7 +6,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import type { Agent, SessionStartSource } from '@deepseek-ai/dsh-agent'
+import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createMessage } from '@deepseek-ai/dsh-llm'
 import type { SystemPrompt } from '@deepseek-ai/dsh-system-prompt'
 import type { ToolRuntime } from '@deepseek-ai/dsh-tools'
@@ -14,7 +14,7 @@ import type { ToolRuntime } from '@deepseek-ai/dsh-tools'
 import { resolveConfig } from './config.ts'
 import type { PluginConfig, ResolvedConfig } from './config.ts'
 import { autoTeamProjectionDefinition } from './projection.ts'
-import { FIRST_ROUND_STEER_TEXT, policyText } from './prompt.ts'
+import { NO_SCORE_STEER_TEXT, policyText } from './prompt.ts'
 import { createResetCommand, isCommandRuntime } from './reset-command.ts'
 import { createAutoTeam } from './services.ts'
 import { registerScoreTool } from './tool.ts'
@@ -34,7 +34,6 @@ interface InstallLeadOptions {
   readonly agent: Agent
   readonly autoTeam: AutoTeam
   readonly config: ResolvedConfig
-  readonly source: SessionStartSource | undefined
 }
 
 /** Create the production runtime adapter from a scoped Cordis context. */
@@ -51,7 +50,7 @@ function createPluginRuntime(ctx: Context): PluginRuntime {
 
 /** Install the prompt, scoring tool, and stop guard in one Lead scope. */
 function installLead(options: InstallLeadOptions): () => void {
-  const { agent, autoTeam, config, source } = options
+  const { agent, autoTeam, config } = options
   const systemPrompt: SystemPrompt = agent.ctx.systemPrompt
   const tools: ToolRuntime = agent.ctx.tools
   const disposers: (() => void)[] = []
@@ -71,27 +70,21 @@ function installLead(options: InstallLeadOptions): () => void {
       register(registerScoreTool(tools, autoTeam))
     }
 
-    if (source === 'startup' || source === 'clear') {
-      const stop = agent.ctx.on('agent/turn-stopping', (payload) => {
-        if (
-          payload.agent !== agent
-          || payload.turn !== 1
-          || autoTeam.hasScore(agent)
-        ) {
-          return
-        }
-        agent.steer(
-          createMessage({
-            role: 'user',
-            content: [{ type: 'text', text: FIRST_ROUND_STEER_TEXT }],
-            source: { kind: 'user' },
-          }),
-        )
-      })
-      register((): void => {
-        stop()
-      })
-    }
+    const stop = agent.ctx.on('agent/turn-stopping', () => {
+      if (autoTeam.hasScore(agent)) {
+        return
+      }
+      agent.steer(
+        createMessage({
+          role: 'user',
+          content: [{ type: 'text', text: NO_SCORE_STEER_TEXT }],
+          source: { kind: 'user' },
+        }),
+      )
+    })
+    register((): void => {
+      stop()
+    })
 
     if (config.enforceLeadNoCode) {
       const guard = agent.ctx.on('tools/pre-execute', async (exec, next) => {
@@ -183,7 +176,7 @@ function apply(ctx: Context, config: PluginConfig): void {
 
   ensureResetCommand()
 
-  const install = (agent: Agent, source?: SessionStartSource): void => {
+  const install = (agent: Agent): void => {
     if (installed.has(agent)) {
       return
     }
@@ -216,17 +209,14 @@ function apply(ctx: Context, config: PluginConfig): void {
     if (restored !== undefined && restored !== null) {
       autoTeam.restore(agent, restored)
     }
-    installed.set(
-      agent,
-      installLead({ agent, autoTeam, config: resolved, source }),
-    )
+    installed.set(agent, installLead({ agent, autoTeam, config: resolved }))
   }
 
   for (const agent of ctx.get('agents')?.list() ?? []) {
     install(agent)
   }
-  ctx.on('agent/created', ({ agent, source }) => {
-    install(agent, source)
+  ctx.on('agent/created', ({ agent }) => {
+    install(agent)
   })
   ctx.on('agent/disposed', ({ agent }) => {
     installed.get(agent)?.()

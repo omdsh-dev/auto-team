@@ -4,8 +4,8 @@
  * @module @oh-my-dsh/auto-team/prompt
  */
 
-/** First-round steering text used when the scoring tool has not run yet. */
-const FIRST_ROUND_STEER_TEXT = `Auto Team: the first round has no score yet. Call auto_team_score now with the five difficulty factors and the task's universal-semantic objective; the turn stays open until the decision is recorded.`
+/** Steering text used whenever no score is recorded, including after a reset. */
+const NO_SCORE_STEER_TEXT = `Auto Team: no score is recorded. Call auto_team_score now with the current task's difficulty factors and objective; the turn stays open until the decision is recorded.`
 
 /** System prompt section that states the Lead's auto-team obligations. */
 function policyText(
@@ -43,4 +43,4 @@ Each turn ends after one update or one answer.
 Write the result in your reply to the user. Then end the turn and wait for the user's next message. Your work is status, questions, and coordination; code changes belong to execution agents.`
 }
 
-export { FIRST_ROUND_STEER_TEXT, policyText, reporterPrompt }
+export { NO_SCORE_STEER_TEXT, policyText, reporterPrompt }

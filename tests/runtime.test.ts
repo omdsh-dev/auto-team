@@ -351,6 +351,28 @@ describe('auto-team runtime scoring and guards', () => {
       expect(silent).toStrictEqual({ kind: 'success' })
       expect(runtime.lead.steer).not.toHaveBeenCalled()
 
+      const stop = eventListener(
+        runtime.lead.scope,
+        'agent/turn-stopping',
+      ) as (payload: {
+        readonly agent: Agent
+        readonly turn: number
+        readonly signal: AbortSignal
+      }) => void
+      stop({ agent: runtime.lead.agent, turn: 5, signal: SIGNAL })
+      expect(runtime.lead.steer).toHaveBeenCalledTimes(1)
+      const [forced] = firstCall(runtime.lead.steer.mock.calls)
+      expect(forced).toMatchObject({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: expect.stringContaining('no score is recorded'),
+          },
+        ],
+      })
+      runtime.lead.steer.mockClear()
+
       await tool.execute(
         {
           scope: 5,
