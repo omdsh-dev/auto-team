@@ -28,12 +28,6 @@ declare module '@deepseek-ai/dsh-session/types' {
   }
 }
 
-declare module '@deepseek-ai/dsh-session-projection/types' {
-  interface SessionProjectionStateMap {
-    autoTeam: AutoTeamProjectionState
-  }
-}
-
 const SCORE_RECORD_TYPE = 'plugin:auto-team/score'
 const RESET_RECORD_TYPE = 'plugin:auto-team/reset'
 const scoreRecordSchema = z.object({
@@ -61,7 +55,10 @@ function applyAutoTeamProjection(
     if (state.score === undefined) {
       return state
     }
-    return { ...state, score: undefined }
+    if (state.failure === undefined) {
+      return {}
+    }
+    return { failure: state.failure }
   }
   if (record.type !== SCORE_RECORD_TYPE) {
     return state

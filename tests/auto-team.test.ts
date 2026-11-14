@@ -80,7 +80,7 @@ function createFakes(): Fakes {
   }
 
   const team: TeamPort = {
-    listMembers: () => members,
+    listMembers: async () => members,
     spawnReporter: async (_agent, request) => {
       spawns.push(request)
       const member = { name: request.name }
@@ -266,7 +266,7 @@ describe('auto-team reporter lifecycle', () => {
   it('keeps the score frozen when reporter provisioning fails', async () => {
     const fakes = createFakes()
     const failing: TeamPort = {
-      listMembers: () => [],
+      listMembers: async () => [],
       spawnReporter: async () => Promise.reject(new Error('spawn failed')),
     }
     const autoTeam = new AutoTeam(

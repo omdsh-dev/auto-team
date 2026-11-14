@@ -56,6 +56,16 @@ describe('auto-team configuration', () => {
     )
   })
 
+  it('enforces the host reporter name length limit', () => {
+    const boundary = 'r'.repeat(32)
+    expect(
+      resolveConfig({ reportingAgentName: boundary }).reportingAgentName,
+    ).toBe(boundary)
+    expect(() => resolveConfig({ reportingAgentName: 'r'.repeat(33) })).toThrow(
+      TypeError,
+    )
+  })
+
   it('rejects an invalid goal round cap', () => {
     expect(() => resolveConfig({ goalMaxRounds: 0 })).toThrow(TypeError)
     expect(() => resolveConfig({ goalMaxRounds: 1.5 })).toThrow(TypeError)

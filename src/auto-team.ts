@@ -58,7 +58,10 @@ interface ReporterRequest {
 
 /** Team operations auto-team needs. The real Team service satisfies this port. */
 interface TeamPort {
-  readonly listMembers: (agent: Agent) => readonly TeamMember[]
+  readonly listMembers: (
+    agent: Agent,
+    signal: AbortSignal,
+  ) => Promise<readonly TeamMember[]>
   readonly spawnReporter: (
     agent: Agent,
     request: ReporterRequest,
@@ -211,9 +214,9 @@ class AutoTeam {
     signal: AbortSignal,
   ): Promise<string> {
     const name = this.config.reportingAgentName
-    const existing = this.deps.team
-      .listMembers(agent)
-      .find((member) => member.name === name)
+    const members = await this.deps.team.listMembers(agent, signal)
+    signal.throwIfAborted()
+    const existing = members.find((member) => member.name === name)
     if (existing !== undefined) {
       return existing.name
     }

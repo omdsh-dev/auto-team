@@ -1,6 +1,6 @@
 /**
  * Cordis integration for auto-team: per-Lead prompt, scoring tool, and
- * first-round stop enforcement.
+ * unconditional no-score stop enforcement.
  *
  * @module @oh-my-dsh/auto-team/runtime
  */
@@ -8,6 +8,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createMessage } from '@deepseek-ai/dsh-llm'
+import { SubagentError } from '@deepseek-ai/dsh-subagent'
 import type { SystemPrompt } from '@deepseek-ai/dsh-system-prompt'
 import type { ToolRuntime } from '@deepseek-ai/dsh-tools'
 
@@ -70,8 +71,8 @@ function installLead(options: InstallLeadOptions): () => void {
       register(registerScoreTool(tools, autoTeam))
     }
 
-    const stop = agent.ctx.on('agent/turn-stopping', () => {
-      if (autoTeam.hasScore(agent)) {
+    const stop = agent.ctx.on('agent/turn-stopping', (payload) => {
+      if (payload.agent !== agent || autoTeam.hasScore(agent)) {
         return
       }
       agent.steer(
@@ -123,41 +124,26 @@ function installLead(options: InstallLeadOptions): () => void {
 /** Read the services needed by the install path without assuming load order. */
 function servicesReady(ctx: Context): boolean {
   return (
-    ctx.get('agentTeams') !== undefined
+    ctx.get('subagents') !== undefined
+    && ctx.get('agents') !== undefined
     && ctx.get('goals') !== undefined
     && ctx.get('tools') !== undefined
     && ctx.get('systemPrompt') !== undefined
   )
 }
 
-/** Apply auto-team to the host; unmanaged scopes stay untouched. */
-function apply(ctx: Context, config: PluginConfig): void {
+/** Apply auto-team after its host-only score projection is ready. */
+async function apply(ctx: Context, config: PluginConfig): Promise<void> {
   const resolved = resolveConfig(config)
   const runtime = createPluginRuntime(ctx)
   runtime.info(resolved.message)
-
-  const autoTeam = createAutoTeam(ctx, resolved)
+  const projection = await ctx.sessionProjections.register(
+    autoTeamProjectionDefinition,
+  )
+  const autoTeam = createAutoTeam(ctx, resolved, projection)
   const installed = new Map<Agent, () => void>()
   let warned = false
-  let projectionRegistered = false
   let resetCommandRegistered = false
-
-  const ensureProjection = (): void => {
-    if (projectionRegistered) {
-      return
-    }
-    const registry = ctx.get('sessionProjections')
-    if (registry === undefined) {
-      return
-    }
-    ctx.effect(
-      () => registry.register(autoTeamProjectionDefinition),
-      'auto-team.projection()',
-    )
-    projectionRegistered = true
-  }
-
-  ensureProjection()
 
   const ensureResetCommand = (): void => {
     if (resetCommandRegistered) {
@@ -167,20 +153,20 @@ function apply(ctx: Context, config: PluginConfig): void {
     if (!isCommandRuntime(commands)) {
       return
     }
-    ctx.effect(
-      () => commands.register(createResetCommand(autoTeam)),
-      'auto-team.reset-command()',
-    )
+    const command = createResetCommand(autoTeam, (agent) => {
+      ctx.effect(
+        () => registerScoreTool(agent.ctx.tools, autoTeam),
+        'auto-team.reset-score-tool()',
+      )
+    })
+    ctx.effect(() => commands.register(command), 'auto-team.reset-command()')
     resetCommandRegistered = true
   }
-
-  ensureResetCommand()
 
   const install = (agent: Agent): void => {
     if (installed.has(agent)) {
       return
     }
-    ensureProjection()
     if (!servicesReady(ctx)) {
       if (!warned) {
         runtime.warn(
@@ -190,55 +176,33 @@ function apply(ctx: Context, config: PluginConfig): void {
       }
       return
     }
-    const membership = ctx.get('agentTeams')?.tryMembership(agent)
-    if (membership === undefined) {
+    const subagents = ctx.get('subagents')
+    if (subagents === undefined) {
       return
     }
-    if (membership.role === 'teammate') {
-      if (membership.name !== resolved.reportingAgentName) {
-        installed.set(
-          agent,
-          installWorkerGuard(agent, membership.root, autoTeam),
-        )
+    let root = agent
+    try {
+      root = subagents.rootOf(agent)
+    } catch (error) {
+      // Startup scans can see an Agent whose activation is not published yet.
+      if (error instanceof SubagentError && error.code === 'UNAUTHORIZED') {
+        return
+      }
+      throw error
+    }
+    if (root !== agent) {
+      if (subagents.namesOf(agent).self !== resolved.reportingAgentName) {
+        installed.set(agent, installWorkerGuard(agent, root, autoTeam))
       }
       return
     }
-    const restored = ctx
-      .get('sessionProjections')
-      ?.stateOf(agent.session, 'autoTeam')?.score
-    if (restored !== undefined && restored !== null) {
+    const restored = projection.stateOf(agent.session).score
+    if (restored !== undefined) {
       autoTeam.restore(agent, restored)
     }
     installed.set(agent, installLead({ agent, autoTeam, config: resolved }))
   }
 
-  for (const agent of ctx.get('agents')?.list() ?? []) {
-    install(agent)
-  }
-  ctx.on('agent/created', ({ agent }) => {
-    install(agent)
-  })
-  ctx.on('agent/disposed', ({ agent }) => {
-    installed.get(agent)?.()
-    installed.delete(agent)
-  })
-  ctx.on('internal/service', (name) => {
-    if (
-      name !== 'agentTeams'
-      && name !== 'goals'
-      && name !== 'tools'
-      && name !== 'systemPrompt'
-      && name !== 'sessionProjections'
-      && name !== 'commands'
-    ) {
-      return
-    }
-    ensureProjection()
-    ensureResetCommand()
-    for (const agent of ctx.get('agents')?.list() ?? []) {
-      install(agent)
-    }
-  })
   ctx.effect(
     (): (() => void) => (): void => {
       for (const dispose of installed.values()) {
@@ -248,6 +212,45 @@ function apply(ctx: Context, config: PluginConfig): void {
     },
     'auto-team.install()',
   )
+  ctx.on('agent/created', ({ agent }) => {
+    // Agent creation precedes the subagent manager's ownership publication.
+    if (agent.session.header.origin !== 'subagent') {
+      install(agent)
+    }
+  })
+  ctx.on('subagent/start', (info) => {
+    if (!info.local) {
+      return
+    }
+    const agent = ctx.get('agents')?.get(info.id)
+    if (agent !== undefined) {
+      install(agent)
+    }
+  })
+  ctx.on('agent/disposed', ({ agent }) => {
+    installed.get(agent)?.()
+    installed.delete(agent)
+  })
+  ctx.on('internal/service', (name) => {
+    if (
+      name !== 'subagents'
+      && name !== 'agents'
+      && name !== 'goals'
+      && name !== 'tools'
+      && name !== 'systemPrompt'
+      && name !== 'commands'
+    ) {
+      return
+    }
+    ensureResetCommand()
+    for (const agent of ctx.get('agents')?.list() ?? []) {
+      install(agent)
+    }
+  })
+  ensureResetCommand()
+  for (const agent of ctx.get('agents')?.list() ?? []) {
+    install(agent)
+  }
 }
 
 export { apply, createPluginRuntime, type PluginRuntime }

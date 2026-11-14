@@ -1,6 +1,9 @@
 import { Context } from '@deepseek-ai/cordis'
+import type { Fiber } from '@deepseek-ai/cordis'
 import { Loader } from '@deepseek-ai/cordis-plugin-loader'
-import { describe, expect, it } from 'vitest'
+import { Session, SessionId } from '@deepseek-ai/dsh-session'
+import { SessionProjectionRegistry } from '@deepseek-ai/dsh-session-projection'
+import { describe, expect, it, vi } from 'vitest'
 
 import { createPluginHarness } from './harness.ts'
 
@@ -35,7 +38,7 @@ function assertPluginExports(unwrapped: unknown, plugin: object): void {
   }
   expect(unwrapped).toBe(plugin)
   expect(unwrapped.name).toBe('auto-team')
-  expect(unwrapped.inject).toStrictEqual([])
+  expect(unwrapped.inject).toStrictEqual(['sessionProjections'])
   expect(unwrapped.Config).toBeDefined()
   expect(unwrapped.apply).toBeTypeOf('function')
 }
@@ -71,11 +74,54 @@ async function testLogsOncePerActivation(): Promise<void> {
   await harness.dispose()
 }
 
+async function testAwaitsProjectionThroughLoader(): Promise<void> {
+  const ctx = new Context()
+  const info = vi.spyOn(ctx.logger, 'info').mockReturnValue()
+  const loaderOwner = await ctx.plugin(Loader)
+  let projectionOwner: Fiber | undefined = undefined
+  try {
+    await ctx.fiber.await()
+    const loader = ctx.get('loader')
+    if (loader === undefined) {
+      throw new Error('Loader service did not activate')
+    }
+    loader.builtins['auto-team'] = await import('#src/index')
+    const id = await loader.create({
+      name: 'cordis:auto-team',
+      config: { message: 'late projection ready' },
+    })
+    expect(info).not.toHaveBeenCalled()
+    projectionOwner = await ctx.plugin(SessionProjectionRegistry)
+    await loader.await()
+    const loaded = loader.resolve(id).fiber
+    if (loaded === undefined) {
+      throw new Error('Loader did not mount auto-team')
+    }
+    loaded.assertActive()
+    expect(info).toHaveBeenCalledWith('late projection ready')
+    // oxlint-disable-next-line eslint/new-cap -- SessionId brands a string.
+    const session = Session.create(SessionId('auto-team-loader-projection'))
+    expect(
+      ctx.get('sessionProjections')?.checkpoint(session).autoTeam,
+    ).toBeDefined()
+  } finally {
+    await loaderOwner.dispose()
+    await projectionOwner?.dispose()
+    info.mockRestore()
+  }
+}
+
 describe('@oh-my-dsh/auto-team', () => {
   it(
     'preserves the function-plugin namespace through Loader unwrapping',
     { timeout: TEST_TIMEOUT },
     testPreservesPluginNamespace,
+  )
+
+  it(
+    'waits for projection availability through an actual Loader entry',
+    { timeout: TEST_TIMEOUT },
+    testAwaitsProjectionThroughLoader,
   )
 
   it(

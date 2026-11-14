@@ -8,7 +8,6 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createMessage } from '@deepseek-ai/dsh-llm'
 
 import type { AutoTeam } from './auto-team.ts'
-import { registerScoreTool } from './tool.ts'
 
 /** Exact agent that invoked the command. */
 interface CommandInvocation {
@@ -35,7 +34,10 @@ interface CommandRuntime {
 }
 
 /** Build the user-facing score reset command. */
-function createResetCommand(autoTeam: AutoTeam): CommandDefinition {
+function createResetCommand(
+  autoTeam: AutoTeam,
+  registerTool: (agent: Agent) => void,
+): CommandDefinition {
   return {
     name: 'auto-team-reset',
     description: 'Clear the frozen Auto Team score for this session.',
@@ -48,7 +50,7 @@ function createResetCommand(autoTeam: AutoTeam): CommandDefinition {
       }
 
       autoTeam.reset(invocation.agent)
-      registerScoreTool(invocation.agent.ctx.tools, autoTeam)
+      registerTool(invocation.agent)
       const message = invocation.rawInput.trim()
       if (message.length > 0) {
         invocation.agent.steer(

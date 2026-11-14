@@ -1,6 +1,6 @@
 # Standalone DSH Plugin Contracts
 
-This reference ships with the template so planning, implementation, testing, and distribution use only guidance stored below the repository root. It targets the DeepSeek Harness 0.2.1-rc.2 plugin contract.
+This reference ships with the template so planning, implementation, testing, and distribution use only guidance stored below the repository root. It targets the DeepSeek Harness 0.2.2-rc.3 plugin contract.
 
 ## Repository boundary
 
@@ -26,7 +26,7 @@ The public manifest fields this template uses are:
 - `dsh.bundle.patch`: one patch file path or an ordered list applied as one bundle layer.
 - `dsh.client`: browser module declaration with `platform: 'web'`, optional `inject` package-name edges, optional `immediately`, and optional `external` exact module requests.
 
-Installation and profile startup evaluate the requirement before importing the plugin. A mismatch is refused unless the profile stores an exact-version exemption for that package version and runtime version. Prereleases participate in range matching, so use an explicit prerelease range such as `>=0.2.1-rc.2 <0.3.0` when the package targets this release line.
+Installation and profile startup evaluate the requirement before importing the plugin. A mismatch is refused unless the profile stores an exact-version exemption for that package version and runtime version. Prereleases participate in range matching, so use an explicit prerelease range such as `>=0.2.2-rc.3 <0.3.0` when the package targets this release line.
 
 ## Dependencies
 
@@ -36,7 +36,7 @@ Classify every package by who supplies it:
 - **Dependency:** a library the plugin owns and ships with.
 - **Development dependency:** tooling used only for lint, tests, or builds.
 
-This template uses `@deepseek-ai/cordis` and `@deepseek-ai/schemastery` as peers and development dependencies, and `@deepseek-ai/cordis-plugin-loader` as a development dependency. Keep every consumed `@deepseek-ai/dsh-*` service as a peer with a reachable development copy. Do not use unscoped `cordis`, `schemastery`, or `@cordisjs/plugin-loader` in a 0.2.1 plugin. Do not use `link:` or `file:` specs, and do not bundle a host runtime.
+This template uses `@deepseek-ai/cordis` and `@deepseek-ai/schemastery` as peers and development dependencies, and `@deepseek-ai/cordis-plugin-loader` as a development dependency. Keep every consumed `@deepseek-ai/dsh-*` service as a peer with a reachable development copy. Do not use unscoped `cordis`, `schemastery`, or `@cordisjs/plugin-loader` in a 0.2.2 plugin. Do not use `link:` or `file:` specs, and do not bundle a host runtime.
 
 ## Display metadata and icon
 
@@ -58,7 +58,7 @@ The sample skeleton separates `src/index.ts`, `src/config.ts`, and `src/runtime.
 
 ## Lifecycle ownership
 
-Every listener, registry entry, timer, watcher, child process, and callback registered by a plugin belongs to its Cordis fiber. Use `ctx.effect()`, `ctx.on()`, or the registry's returned disposer and test removal after fiber disposal. Publish state and emit events only after the owning operation succeeds. A waterfall listener delegates by calling `next()`.
+Every listener, registry entry, timer, watcher, child process, and callback registered by a plugin belongs to its Cordis fiber. Use `ctx.effect()`, `ctx.on()`, or the registry's returned disposer and test removal after fiber disposal. Publish state and emit events only after the owning operation succeeds. A waterfall listener delegates by calling `next()`. In DSH 0.2.2-rc.3, await `sessionProjections.register()` during activation and retain its typed `ProjectionHandle`; use `handle.stateOf(session)` for host state. Registration is fiber-owned, `handle.dispose()` releases it, and host-only units omit `wire` and do not augment the client projection map.
 
 ## Bundle composition
 

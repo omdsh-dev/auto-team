@@ -8,7 +8,7 @@
 const name = 'auto-team'
 
 /** Services that must exist before the plugin is applied. */
-const inject: string[] = []
+const inject = ['sessionProjections']
 
 export { Config } from './config.ts'
 export type { PluginConfig, ResolvedConfig } from './config.ts'

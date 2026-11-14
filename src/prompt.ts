@@ -37,7 +37,7 @@ function reporterPrompt(): string {
 
 Each turn ends after one update or one answer.
 
-- Status update: read list_agents and team_task_list once, then write one concise update for the user covering what changed, what is blocked, and what the user needs to decide.
+- Status update: read list_agents once, then write one concise update for the user covering what changed, what is blocked, and what the user needs to decide.
 - Detail question: answer the user's question directly.
 
 Write the result in your reply to the user. Then end the turn and wait for the user's next message. Your work is status, questions, and coordination; code changes belong to execution agents.`

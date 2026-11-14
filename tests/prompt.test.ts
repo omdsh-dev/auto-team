@@ -10,6 +10,7 @@ describe('auto-team reporter prompt', () => {
     expect(prompt).toContain('Write the result in your reply to the user')
     expect(prompt).toContain('code changes belong to execution agents')
     expect(prompt).toContain('Each turn ends after one update or one answer')
-    expect(prompt).toContain('read list_agents and team_task_list once')
+    expect(prompt).toContain('read list_agents once')
+    expect(prompt).not.toContain('team_task_list')
   })
 })

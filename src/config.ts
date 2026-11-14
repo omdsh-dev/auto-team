@@ -54,7 +54,7 @@ const DEFAULT_REPORTING_PROVIDER = 'spawn'
 const DEFAULT_GOAL_MAX_ROUNDS = 256
 const DEFAULT_ENFORCE_LEAD_NO_CODE = true
 const DEFAULT_LEAD_DENIED_TOOLS: string[] = ['write', 'edit']
-const REPORTER_NAME_PATTERN = /^[a-z][a-z0-9-]*$/u
+const REPORTER_NAME_PATTERN = /^[a-z][a-z0-9-]{0,31}$/u
 const UNIT_RANGE: NumberRange = { min: 0, max: 1 }
 
 /** Loader-visible configuration schema and defaults. */
@@ -149,7 +149,7 @@ function resolveReportingAgentName(config: PluginConfig): string {
   const name = config.reportingAgentName ?? DEFAULT_REPORTING_AGENT_NAME
   if (!REPORTER_NAME_PATTERN.test(name) || name === 'lead') {
     throw new TypeError(
-      'reportingAgentName must be lower-kebab-case and must not be "lead"',
+      'reportingAgentName must be 1–32 lower-kebab-case characters and must not be "lead"',
     )
   }
   return name

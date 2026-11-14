@@ -1,4 +1,5 @@
 import { Context } from '@deepseek-ai/cordis'
+import { SessionProjectionRegistry } from '@deepseek-ai/dsh-session-projection'
 import { vi } from 'vitest'
 
 import type { PluginConfig } from '#src/index'
@@ -18,6 +19,7 @@ export async function createPluginHarness(
   config: PluginConfig = {},
 ): Promise<PluginHarness> {
   const ctx = new Context()
+  const projections = await ctx.plugin(SessionProjectionRegistry)
   const info = vi.spyOn(ctx.logger, 'info').mockReturnValue()
   const fiber = await ctx.plugin(plugin, config)
 
@@ -29,6 +31,7 @@ export async function createPluginHarness(
       try {
         await fiber.dispose()
       } finally {
+        await projections.dispose()
         info.mockRestore()
       }
     },
